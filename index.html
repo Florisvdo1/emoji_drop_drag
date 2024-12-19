@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<title>Pixel Emoji Planner - Premium Edition</title>
+<style>
+  html, body {
+    margin:0; padding:0; width:100%; height:100%;
+    background: #cce7ff; /* base sky color */
+    font-family: sans-serif;
+    overflow:hidden;
+    user-select:none;
+    -webkit-user-select:none;
+    touch-action:manipulation;
+  }
+
+  body, button {
+    font-weight:bold;
+  }
+
+  /* Parallax pixel clouds */
+  .cloud-layer {
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    top: -50%;
+    left: -50%;
+    background-repeat: repeat;
+    background-size: 200px 200px;
+    pointer-events: none;
+    z-index: -1; /* Behind everything */
+  }
+
+  .cloud-layer:nth-child(1) {
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><text x="10" y="50" style="font-size:50px;">☁️</text></svg>');
+    animation: cloudsMove1 60s linear infinite;
+    opacity: 0.6;
+  }
+
+  .cloud-layer:nth-child(2) {
+    background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><text x="50" y="100" style="font-size:50px;">☁️</text></svg>');
+    animation: cloudsMove2 90s linear infinite reverse;
+    opacity: 0.3;
+  }
+
+  @keyframes cloudsMove1 {
+    0% { transform: translate(0,0); }
+    100% { transform: translate(50%,0); }
+  }
+
+  @keyframes cloudsMove2 {
+    0% { transform: translate(0,0); }
+    100% { transform: translate(-50%,0); }
+  }
+
+  .app-container {
+    position: relative; width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden;
+  }
+
+  header {
+    z-index:1000;
+    background: #1c82e8;
+    padding:0.5rem;
+    display:flex; justify-content:space-between; align-items:center;
+    color:#fff; font-size:1rem;
+  }
+
+  header h1 {
+    margin:0; font-size:1rem; text-transform:uppercase; letter-spacing:1px;
+  }
+
+  .header-buttons {
+    display:flex; align-items:center;
+    gap:0.5rem;
+  }
+
+  button {
+    background:#004ea8;
+    color:#fff;
+    border:none;
+    border-radius:6px;
+    padding:0.3rem 0.6rem;
+    font-size:0.9rem;
+    cursor:pointer;
+    box-shadow:0 2px #002f6b;
+  }
+  button:active {
+    transform:translateY(1px);
+    box-shadow:0 1px #002f6b;
+  }
+
+  .toggle-container {
+    background:#fff;
+    width:50px; height:25px;
+    border-radius:25px;
+    position:relative;
+    cursor:pointer; 
+    transition: background 0.3s;
+    box-shadow:inset 0 0 5px rgba(0,0,0,0.2);
+  }
+
+  .toggle-circle {
+    position:absolute; top:2px; left:2px;
+    width:21px; height:21px;
+    background:#1c82e8; 
+    border-radius:50%;
+    transition: all 0.3s ease;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1rem;
+    color:#fff;
+    overflow:hidden;
+  }
+
+  .toggle-container.on {
+    background:#cce7ff;
+  }
+
+  .toggle-container.on .toggle-circle {
+    left: calc(100% - 23px);
+    background:#1c82e8;
+  }
+
+  @keyframes wobble {
+    0% { transform:rotate(0deg); }
+    20% { transform:rotate(-10deg); }
+    40% { transform:rotate(10deg); }
+    60% { transform:rotate(-10deg); }
+    80% { transform:rotate(10deg); }
+    100% { transform:rotate(0deg); }
+  }
+
+  .toggle-container.on .toggle-circle .thumb {
+    animation: wobble 1s infinite;
+  }
+
+  .main {
+    flex:1;
+    overflow-y:auto;
+    padding:1rem;
+    display:flex; flex-direction:column; gap:2rem;
+  }
+
+  .sector {
+    background:#90c2ff;
+    padding:0.5rem;
+    border-radius:8px;
+    border:2px solid #1c82e8;
+    box-shadow:0 2px #0b4f98;
+  }
+
+  .sector h2 {
+    margin:0 0 0.5rem 0;
+    font-size:1rem; 
+    color:#fff;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    text-shadow:1px 1px #004ea8;
+  }
+
+  .sector-row {
+    display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;
+  }
+
+  .placeholder, .add-placeholder {
+    width:50px; height:50px;
+    background:#eaf6ff;
+    border:2px solid #1c82e8;
+    border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.2rem; 
+    color:#1c82e8;
+    position:relative;
+  }
+
+  .add-placeholder {
+    cursor:pointer;
+  }
+
+  .add-placeholder::before {
+    content:"+"; 
+    color:#1c82e8; 
+    font-weight:bold; 
+    font-size:1.5rem; 
+    position:absolute;
+  }
+
+  .placeholder.has-emoji {
+    background:#cce7ff;
+  }
+
+  .emoji-palette {
+    background:#fff;
+    border-top:3px solid #1c82e8;
+    display:flex; flex-direction:column;
+  }
+
+  .palette-header {
+    background:#1c82e8;
+    color:#fff;
+    text-align:center;
+    font-size:0.9rem; padding:0.5rem;
+    letter-spacing:1px;
+  }
+
+  .emoji-category-bar {
+    display:flex; gap:0.5rem; 
+    padding:0.5rem; 
+    overflow-x:auto; 
+    background:#cce7ff;
+  }
+
+  .category-icon {
+    width:40px; height:40px; 
+    background:#1c82e8;
+    border-radius:8px;
+    border:2px solid #004ea8;
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-size:1.2rem; cursor:pointer;
+    box-shadow:0 1px #002f6b;
+    flex-shrink:0;
+  }
+
+  .category-icon:active {
+    transform:translateY(1px);
+    box-shadow:none;
+  }
+
+  .emoji-grid {
+    display:flex; gap:0.5rem; 
+    overflow-x:auto; 
+    padding:0.5rem; 
+    background:#eaf6ff;
+  }
+
+  .emoji-item {
+    width:40px; height:40px;
+    background:#cce7ff;
+    border:2px solid #1c82e8;
+    border-radius:8px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:1.4rem; 
+    cursor:grab;
+    animation: floaty 2s infinite ease-in-out alternate;
+    flex-shrink:0;
+  }
+
+  @keyframes floaty {
+    0% { transform: translateY(0px); }
+    100% { transform: translateY(-2px); }
+  }
+
+  .emoji-item:active {
+    cursor:grabbing;
+  }
+
+  .emoji-item.dragging {
+    opacity:0.8; transform:scale(1.1);
+    animation:none; z-index:9999; pointer-events:none;
+    position:fixed;
+  }
+
+</style>
+</head>
+<body>
+<div class="cloud-layer"></div>
+<div class="cloud-layer"></div>
+<div class="app-container">
+  <header>
+    <h1>Pixel Emoji Planner</h1>
+    <div class="header-buttons">
+      <button id="resetBtn">RESET</button>
+      <div class="toggle-container" id="homeworkToggle">
+        <div class="toggle-circle"></div>
+      </div>
+    </div>
+  </header>
+  
+  <div class="main" id="mainContent">
+    <div class="sector" data-sector="morning">
+      <h2>Morning</h2>
+      <div class="sector-row"></div>
+    </div>
+
+    <div class="sector" data-sector="midday">
+      <h2>Midday</h2>
+      <div class="sector-row"></div>
+    </div>
+
+    <div class="sector" data-sector="evening">
+      <h2>Evening</h2>
+      <div class="sector-row"></div>
+    </div>
+  </div>
+  
+  <div class="emoji-palette">
+    <div class="palette-header">Emoji Deck</div>
+    <div class="emoji-category-bar" id="emojiCategoryBar"></div>
+    <div class="emoji-grid" id="emojiGrid"></div>
+  </div>
+</div>
+
+<script>
+  const homeworkToggle = document.getElementById('homeworkToggle');
+  const toggleCircle = homeworkToggle.querySelector('.toggle-circle');
+  const resetBtn = document.getElementById('resetBtn');
+  const mainContent = document.getElementById('mainContent');
+  const emojiCategoryBar = document.getElementById('emojiCategoryBar');
+  const emojiGrid = document.getElementById('emojiGrid');
+
+  let homeworkOn = false;
+
+  const CATEGORIES = {
+    morning: ["☀️","☕","🥐","🏃‍♀️"],
+    work: ["💻","📚","✏️","📅"],
+    food: ["🍎","🍔","🍣","🍕","☕","🍰"],
+    fitness: ["🏋️","🚴‍♂️","🧘‍♂️","🏊‍♀️","🏃‍♂️"],
+    fun: ["🎵","🎮","🍿","🎨","🎉","🌈"]
+  };
+
+  const DEFAULT_CATEGORY = 'morning';
+
+  let layout = {
+    morning: [],
+    midday: [],
+    evening: []
+  };
+
+  function loadLayout() {
+    const data = localStorage.getItem('pixelPlannerLayoutV2');
+    if (data) {
+      layout = JSON.parse(data);
+    }
+  }
+
+  function saveLayout() {
+    localStorage.setItem('pixelPlannerLayoutV2', JSON.stringify(layout));
+  }
+
+  function initSectors() {
+    const sectors = mainContent.querySelectorAll('.sector');
+    sectors.forEach(sector => {
+      const name = sector.dataset.sector;
+      const row = sector.querySelector('.sector-row');
+      row.innerHTML = '';
+
+      if (layout[name].length === 0) {
+        layout[name].push(null);
+      }
+
+      layout[name].forEach(emoji => {
+        const ph = createPlaceholder(emoji);
+        row.appendChild(ph);
+      });
+
+      const addPh = createAddPlaceholder(name);
+      row.appendChild(addPh);
+    });
+  }
+
+  function createPlaceholder(emoji) {
+    const ph = document.createElement('div');
+    ph.className = 'placeholder';
+    if (emoji) {
+      ph.classList.add('has-emoji');
+      ph.textContent = emoji;
+    } 
+    return ph;
+  }
+
+  function createAddPlaceholder(sectorName) {
+    const addPh = document.createElement('div');
+    addPh.className = 'add-placeholder';
+    addPh.addEventListener('click', () => {
+      layout[sectorName].push(null);
+      initSectors();
+      saveLayout();
+    });
+    return addPh;
+  }
+
+  function initCategoryBar() {
+    emojiCategoryBar.innerHTML = '';
+    Object.keys(CATEGORIES).forEach(cat => {
+      const cIcon = document.createElement('div');
+      cIcon.className = 'category-icon';
+      cIcon.dataset.cat = cat;
+      cIcon.textContent = categoryIconFor(cat);
+      cIcon.addEventListener('click', () => loadCategory(cat));
+      emojiCategoryBar.appendChild(cIcon);
+    });
+  }
+
+  function categoryIconFor(cat) {
+    switch(cat) {
+      case 'morning': return '🌅';
+      case 'work': return '💻';
+      case 'food': return '🍎';
+      case 'fitness': return '🏋️';
+      case 'fun': return '🎵';
+    }
+    return '❓';
+  }
+
+  function loadCategory(cat) {
+    emojiGrid.innerHTML = '';
+    (CATEGORIES[cat] || []).forEach(emojiChar => {
+      const item = document.createElement('div');
+      item.className = 'emoji-item';
+      item.textContent = emojiChar;
+      item.addEventListener('touchstart', handleEmojiTouchStart);
+      emojiGrid.appendChild(item);
+    });
+  }
+
+  let dragElement = null;
+
+  function handleEmojiTouchStart(e) {
+    const touch = e.touches[0];
+    dragElement = e.currentTarget;
+    dragElement.classList.add('dragging');
+
+    positionDragElement(touch.clientX, touch.clientY);
+    document.addEventListener('touchmove', handleEmojiTouchMove, {passive:false});
+    document.addEventListener('touchend', handleEmojiTouchEnd);
+  }
+
+  function handleEmojiTouchMove(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    positionDragElement(touch.clientX, touch.clientY);
+  }
+
+  function handleEmojiTouchEnd(e) {
+    document.removeEventListener('touchmove', handleEmojiTouchMove);
+    document.removeEventListener('touchend', handleEmojiTouchEnd);
+
+    if (dragElement) {
+      const touch = e.changedTouches[0];
+      const elemBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+      const placeholder = elemBelow ? elemBelow.closest('.placeholder') : null;
+
+      if (placeholder && !placeholder.classList.contains('has-emoji')) {
+        placeholder.textContent = dragElement.textContent;
+        placeholder.classList.add('has-emoji');
+        updateLayoutFromDOM();
+        saveLayout();
+      }
+
+      dragElement.classList.remove('dragging');
+      dragElement.style.position = '';
+      dragElement.style.left = '';
+      dragElement.style.top = '';
+      dragElement = null;
+    }
+  }
+
+  function positionDragElement(x, y) {
+    if (dragElement) {
+      const w = dragElement.offsetWidth;
+      const h = dragElement.offsetHeight;
+      dragElement.style.position = 'fixed';
+      dragElement.style.left = (x - w/2) + 'px';
+      dragElement.style.top = (y - h/2) + 'px';
+    }
+  }
+
+  function updateLayoutFromDOM() {
+    const sectors = mainContent.querySelectorAll('.sector');
+    sectors.forEach(sector => {
+      const name = sector.dataset.sector;
+      const row = sector.querySelector('.sector-row');
+      const placeholders = row.querySelectorAll('.placeholder:not(.add-placeholder)');
+      let newArr = [];
+      placeholders.forEach(ph => {
+        if (ph.classList.contains('has-emoji')) {
+          newArr.push(ph.textContent);
+        } else {
+          newArr.push(null);
+        }
+      });
+      layout[name] = newArr;
+    });
+  }
+
+  homeworkToggle.addEventListener('click', () => {
+    homeworkOn = !homeworkOn;
+    homeworkToggle.classList.toggle('on', homeworkOn);
+
+    if (homeworkOn) {
+      toggleCircle.innerHTML = '<span class="thumb">👍</span>';
+    } else {
+      toggleCircle.innerHTML = '';
+    }
+  });
+
+  resetBtn.addEventListener('click', () => {
+    layout = { morning: [], midday: [], evening: [] };
+    initSectors();
+    saveLayout();
+    alert("All placeholders cleared!");
+  });
+
+  loadLayout();
+  initSectors();
+  initCategoryBar();
+  loadCategory(DEFAULT_CATEGORY);
+</script>
+</body>
+</html>
